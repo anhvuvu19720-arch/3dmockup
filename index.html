@@ -1,0 +1,168 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Mockup Studio</title>
+<style>
+:root{--bg:#f4f4f6;--pn:#fff;--bd:#e3e3e8;--tx:#1c1c22;--mu:#6b6b78;--ac:#7c5cff;--vp:#e9e9ed;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16161a;--pn:#1f1f25;--bd:#33333c;--tx:#ececf1;--mu:#9a9aa8;--vp:#2a2a31}}
+:root[data-theme="dark"]{--bg:#16161a;--pn:#1f1f25;--bd:#33333c;--tx:#ececf1;--mu:#9a9aa8;--vp:#2a2a31}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+#app{display:grid;grid-template-rows:44px 1fr;height:100%}
+header{display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--pn);border-bottom:1px solid var(--bd)}
+header b{font-size:14px}header i{width:18px;height:18px;border-radius:5px;background:var(--ac);display:inline-block}header .sp{flex:1}
+main{display:grid;grid-template-columns:310px 1fr;min-height:0}
+aside{background:var(--pn);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--bd)}.tabs button{flex:1;padding:9px 0;border:0;background:none;color:var(--mu);cursor:pointer;border-bottom:2px solid transparent;font:inherit}
+.tabs button.on{color:var(--tx);border-color:var(--ac);font-weight:600}
+.pane{display:none;padding:12px;overflow:auto;flex:1}.pane.on{display:block}
+h4{margin:14px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mu)}h4:first-child{margin-top:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 11px;border:1px solid var(--bd);border-radius:8px;background:var(--pn);color:var(--tx);cursor:pointer;font:inherit}
+.btn:hover{border-color:var(--ac)}.btn.p{background:var(--ac);color:#fff;border-color:var(--ac)}.btn.w{width:100%}
+select,input[type=number],input[type=color]{font:inherit;border:1px solid var(--bd);border-radius:6px;background:var(--pn);color:var(--tx);padding:4px 6px;max-width:100%}select{width:100%;margin:2px 0}
+.row{display:grid;grid-template-columns:92px 1fr 56px;gap:6px;align-items:center;margin:4px 0}.row input[type=range]{width:100%;accent-color:var(--ac)}.row input[type=number]{width:56px}
+.chk{display:flex;gap:6px;align-items:center;margin:4px 0}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mu{color:var(--mu);font-size:12px}pre{margin:0;font:11px/1.5 ui-monospace,Menlo,monospace;max-height:160px;overflow:auto;background:var(--bg);padding:6px;border-radius:6px}pre span{cursor:pointer}pre span:hover{color:var(--ac)}
+#vp{position:relative;min-width:0;min-height:0;background:var(--vp);overflow:hidden}#vp canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#tools{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:4px;z-index:3}
+#tools button{border:0;background:none;color:var(--tx);padding:5px 9px;border-radius:6px;cursor:pointer;font:inherit}#tools button:hover{background:var(--bg)}
+#empty,#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none;color:var(--mu);z-index:2}#load{background:rgba(0,0,0,.25);color:#fff;display:none}
+#toast{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#2b2233;color:#fff;padding:8px 14px;border-radius:8px;display:none;max-width:80%;z-index:4}
+@media(max-width:760px){main{grid-template-columns:1fr;grid-template-rows:46% 54%}aside{order:2;border-right:0;border-top:1px solid var(--bd)}}
+</style></head><body><div id="app">
+<header><i></i><b>Mockup Studio</b><span class="mu" id="info"></span><span class="sp"></span><button class="btn" id="bUndo" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button><button class="btn" id="bRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button><button class="btn" id="bModel">Upload 3D model</button><button class="btn" id="bLabel">Upload label</button><button class="btn p" id="bExp">Export PNG</button>
+<input type="file" id="fModel" accept=".glb,.gltf" hidden><input type="file" id="fLabel" accept="image/png,image/jpeg,image/webp" hidden><input type="file" id="fBg" accept="image/*" hidden><input type="file" id="fProj" accept=".json" hidden></header>
+<main><aside><div class="tabs" id="tabs"></div><div id="panes"></div></aside>
+<div id="vp"><div id="tools"></div><div id="empty"><div><b style="font-size:15px;color:var(--tx)">Drop a .glb model here</b><br>or use “Upload 3D model”, then add a label image</div></div><div id="load">Loading…</div><div id="toast"></div></div></main></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const $=id=>document.getElementById(id),vp=$('vp');
+const S={mode:'uv',orig:false,mi:0,si:0,ov:false,metal:.6,rough:.35,L:{x:0,y:0,rot:0,sx:1,sy:1,fx:false,fy:false,op:1,rep:false,cov:1,h:.5,yp:.5,seam:0},grid:true,ground:true,shadow:true,env:true,persp:true,fov:35,envName:'studio',bg:'solid',c1:'#e9e9ed',c2:'#b9b9c6',exp:1};
+let R,scene=new THREE.Scene(),root=new THREE.Group(),model=null,meshes=[],mats=[],T={uv:null,cyl:null,w:0,h:0},cyl=null,persp,ortho,cam,ctl,orthoS=1,dim=new THREE.Vector3(1,1,1),envTex=null,tgt=new THREE.Vector3();
+try{R=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true})}catch(e){document.body.innerHTML='<p style="padding:20px">WebGL is not available in this browser.</p>'}
+R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.setClearColor(0,0);vp.appendChild(R.domElement);
+scene.add(root);
+const hemi=new THREE.HemisphereLight(0xffffff,0x888899,.35);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffffff,.9);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0005;sun.shadow.radius=6;scene.add(sun,sun.target);
+const gnd=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshStandardMaterial({color:0xdcdce2,roughness:.9}));gnd.rotation.x=-Math.PI/2;gnd.position.y=-.001;scene.add(gnd);
+const shd=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShadowMaterial({opacity:.28}));shd.rotation.x=-Math.PI/2;shd.receiveShadow=true;scene.add(shd);
+let gridH=new THREE.GridHelper(10,20,0x999999,0xbbbbbb);gridH.material.transparent=true;gridH.material.opacity=.5;scene.add(gridH);
+function toast(m,ok){const t=$('toast');t.textContent=m;t.style.display='block';t.style.background=ok?'#1f6b45':'#8a2a3a';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',5000)}
+/* ---------- environments ---------- */
+const ENV={studio:{bg:0x777777,room:0x777777,l:[[-6,5,6,6,8,4],[6,4,4,5,8,2.5],[0,9,0,8,8,2]]},bright:{bg:0xdddddd,room:0xcccccc,l:[[-6,5,6,8,8,6],[6,4,4,8,8,5],[0,9,0,10,10,4]]},dark:{bg:0x0a0a0c,room:0x0a0a0c,l:[[-7,3,3,2,9,6],[7,3,3,2,9,6],[0,9,0,3,3,3]]},neutral:{bg:0xaaaaaa,room:0xaaaaaa,l:[[0,9,0,14,14,3],[0,2,9,10,6,1.5]]}};
+function buildEnv(){const p=ENV[S.envName],E=new THREE.Scene();E.add(new THREE.Mesh(new THREE.BoxGeometry(24,24,24),new THREE.MeshBasicMaterial({color:p.room,side:THREE.BackSide})));
+p.l.forEach(([x,y,z,w,h,i])=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:new THREE.Color(i,i,i),side:THREE.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,0,0);E.add(m)});
+const pm=new THREE.PMREMGenerator(R);if(envTex)envTex.dispose();envTex=pm.fromScene(E,.02).texture;pm.dispose();E.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose()}});applyEnv()}
+function applyEnv(){hist();scene.environment=S.env?envTex:null;hemi.intensity=S.env?.15:.8;R.toneMappingExposure=S.exp;mats.forEach(m=>m.needsUpdate=true)}
+/* ---------- camera ---------- */
+persp=new THREE.PerspectiveCamera(S.fov,1,.01,500);ortho=new THREE.OrthographicCamera(-1,1,1,-1,.01,500);cam=persp;
+function mkCtl(){if(ctl)ctl.dispose();ctl=new THREE.OrbitControls(cam,R.domElement);ctl.enableDamping=true;ctl.dampingFactor=.08;ctl.target.copy(tgt)}
+function aspect(a){persp.aspect=a;ortho.left=-orthoS*a;ortho.right=orthoS*a;ortho.top=orthoS;ortho.bottom=-orthoS;persp.updateProjectionMatrix();ortho.updateProjectionMatrix()}
+function resize(){const w=vp.clientWidth,h=vp.clientHeight;if(!w||!h)return;R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(w,h,false);aspect(w/h)}
+new ResizeObserver(resize).observe(vp);
+const VIEWS={front:[0,0,1],back:[0,0,-1],left:[-1,0,0],right:[1,0,0],top:[0,1,.001],'3/4':[.7,.35,.8]};
+function distFit(){return Math.max(dim.y,dim.x,dim.z)*.5/Math.tan(S.fov*Math.PI/360)*1.7+dim.z*.5}
+function view(n){const d=distFit(),v=new THREE.Vector3(...VIEWS[n]).normalize();tgt.set(0,dim.y/2,0);cam.position.copy(tgt).addScaledVector(v,d);cam.zoom=1;cam.updateProjectionMatrix();ctl.target.copy(tgt);ctl.update()}
+function setProj(p){S.persp=p;const o=cam;cam=p?persp:ortho;if(cam!==o){const d=o.position.distanceTo(ctl.target);orthoS=d*Math.tan(S.fov*Math.PI/360);cam.position.copy(o.position);cam.quaternion.copy(o.quaternion);cam.zoom=1;aspect(vp.clientWidth/vp.clientHeight);mkCtl()}}
+function zoom(f){if(cam.isPerspectiveCamera)cam.position.sub(ctl.target).multiplyScalar(f).add(ctl.target);else{cam.zoom/=f;cam.updateProjectionMatrix()}}
+/* ---------- model ---------- */
+function disposeObj(o){o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material)[].concat(n.material).forEach(m=>{for(const k in m)if(m[k]&&m[k].isTexture)m[k].dispose();m.dispose()})})}
+function clearCyl(){if(cyl){root.remove(cyl);cyl.geometry.dispose();cyl.material.dispose();cyl=null}}
+function loadModel(file,cb){CUR.model=file;const url=URL.createObjectURL(file),L=$('load');L.style.display='flex';L.textContent='Loading…';
+new THREE.GLTFLoader().load(url,g=>{URL.revokeObjectURL(url);L.style.display='none';clearCyl();if(model){root.remove(model);disposeObj(model)}
+model=g.scene;root.add(model);root.updateMatrixWorld(true);let b=new THREE.Box3().setFromObject(model),c=b.getCenter(new THREE.Vector3());model.position.set(-c.x,-b.min.y,-c.z);root.updateMatrixWorld(true);
+b=new THREE.Box3().setFromObject(model);b.getSize(dim);meshes=[];const ms=new Set();model.traverse(o=>{if(o.isMesh){meshes.push(o);o.castShadow=true;o.receiveShadow=true;[].concat(o.material).forEach(m=>{if(!ms.has(m)){ms.add(m);m.userData.o={map:m.map||null,metalness:m.metalness,roughness:m.roughness,color:m.color?m.color.clone():null,transparent:m.transparent,opacity:m.opacity}}})}});mats=[...ms];
+S.mi=Math.max(0,meshes.findIndex(m=>m.geometry.attributes.uv));S.si=0;sizeScene();$('empty').style.display='none';
+$('info').textContent=`${file.name||'model.glb'} · ${meshes.length} meshes · ${mats.length} materials · ${(dim.x*100).toFixed(1)}×${(dim.y*100).toFixed(1)}×${(dim.z*100).toFixed(1)} (units×100)`;
+buildPanes();applyEnv();view('3/4');applyLabel();toast('Model loaded',1);cb&&cb()},e=>{if(e&&e.total)L.textContent='Loading '+Math.round(e.loaded/e.total*100)+'%'},e=>{URL.revokeObjectURL(url);L.style.display='none';toast('Could not load this file. Use a self-contained .glb (external .gltf resources cannot be read from a single upload).')})}
+function sizeScene(){const m=Math.max(dim.x,dim.y,dim.z);gnd.scale.setScalar(m*3);shd.scale.setScalar(m*6);gridH.scale.setScalar(m/5);sun.position.set(m*1.5,m*3,m*2);sun.target.position.set(0,dim.y/2,0);const s=sun.shadow.camera;s.left=s.bottom=-m*2;s.right=s.top=m*2;s.near=.1;s.far=m*10;s.updateProjectionMatrix();vis()}
+function vis(){hist();gridH.visible=S.grid;gnd.visible=S.ground;shd.visible=S.shadow;sun.castShadow=S.shadow;const c=S.bg==='image'&&BG.url?`url(${BG.url}) center/cover`:S.bg==='gradient'?`linear-gradient(${S.c1},${S.c2})`:S.bg==='transparent'?'repeating-conic-gradient(#ccc 0 25%,#eee 0 50%) 0 0/20px 20px':S.c1;vp.style.background=c}
+/* ---------- label ---------- */
+function loadLabel(file,cb){CUR.label=file;const url=URL.createObjectURL(file),im=new Image();im.onload=()=>{[T.uv,T.cyl].forEach(t=>t&&t.dispose());const mk=f=>{const t=new THREE.Texture(im);t.encoding=THREE.sRGBEncoding;t.anisotropy=R.capabilities.getMaxAnisotropy();t.flipY=f;t.needsUpdate=true;return t};T.uv=mk(false);T.cyl=mk(true);T.w=im.width;T.h=im.height;T.name=file.name;fitH();buildPanes();applyLabel();toast(`Label loaded (${im.width}×${im.height})`,1);cb&&cb()};im.onerror=()=>{URL.revokeObjectURL(url);toast('Could not read that image.')};im.src=url}
+function setT(t){const L=S.L;t.center.set(.5,.5);t.rotation=L.rot*Math.PI/180;t.repeat.set((L.fx?-1:1)/L.sx,(L.fy?-1:1)/L.sy);t.offset.set(L.x,L.y);t.wrapS=t.wrapT=L.rep?THREE.RepeatWrapping:THREE.ClampToEdgeWrapping;t.needsUpdate=true}
+function restore(m){const o=m.userData.o;if(!o)return;m.map=o.map;if('metalness'in m){m.metalness=o.metalness;m.roughness=o.roughness}if(o.color)m.color.copy(o.color);m.transparent=o.transparent;m.opacity=o.opacity;m.needsUpdate=true}
+function slotMat(){const m=meshes[S.mi];return m?[].concat(m.material)[S.si]:null}
+function bodyBox(){root.updateMatrixWorld(true);return new THREE.Box3().setFromObject(meshes[S.mi])}
+function fitH(){if(!T.w||!meshes[S.mi])return;const b=bodyBox(),sz=b.getSize(new THREE.Vector3()),r=Math.max(sz.x,sz.z)/2,hh=2*Math.PI*r*S.L.cov/(T.w/T.h);S.L.h=Math.min(1,hh/sz.y)}
+function applyLabel(){hist();clearCyl();mats.forEach(restore);const mesh=meshes[S.mi],L=S.L;if(!T.uv||S.orig||!mesh)return;
+if(S.mode==='uv'){const m=slotMat();if(!m||!('map'in m))return toast('This material cannot take a texture.');if(!mesh.geometry.attributes.uv)return toast('This mesh has no UV map. Switch to cylindrical mapping or prepare UVs in a 3D editor.');
+setT(T.uv);m.map=T.uv;if(m.color)m.color.set(0xffffff);if(L.op<1){m.transparent=true;m.opacity=L.op}if(S.ov&&'metalness'in m){m.metalness=S.metal;m.roughness=S.rough}m.needsUpdate=true}
+else{const b=bodyBox(),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),r=Math.max(sz.x,sz.z)/2*1.004+sz.y*.0004,h=Math.max(.001,sz.y*L.h),cov=Math.min(1,Math.max(.02,L.cov)),y=b.min.y+h/2+(sz.y-h)*L.yp;setT(T.cyl);
+cyl=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,128,1,true,L.seam*Math.PI/180,cov*2*Math.PI),new THREE.MeshPhysicalMaterial({map:T.cyl,metalness:S.metal,roughness:S.rough,clearcoat:.4,clearcoatRoughness:.2,transparent:true,opacity:L.op,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));cyl.position.set(c.x,y,c.z);cyl.castShadow=false;root.add(cyl)}}
+/* ---------- UI ---------- */
+const tabs=$('tabs'),panes=$('panes');let cur='Model';
+function slider(p,lab,min,max,step,get,set){const d=document.createElement('div');d.className='row';d.innerHTML=`<label>${lab}</label><input type="range" min="${min}" max="${max}" step="${step}"><input type="number" step="${step}">`;const [,r,n]=d.children;r.value=n.value=get();const f=v=>{v=parseFloat(v);if(isNaN(v))return;r.value=n.value=v;set(v)};r.oninput=()=>f(r.value);n.onchange=()=>f(n.value);p.appendChild(d)}
+function check(p,lab,get,set){const d=document.createElement('label');d.className='chk';d.innerHTML=`<input type="checkbox"> ${lab}`;d.firstChild.checked=get();d.firstChild.onchange=e=>set(e.target.checked);p.appendChild(d)}
+function sel(p,opts,get,set){const s=document.createElement('select');opts.forEach(([v,t])=>{const o=new Option(t,v);s.add(o)});s.value=get();s.onchange=()=>set(s.value);p.appendChild(s);return s}
+function head(p,t){const h=document.createElement('h4');h.textContent=t;p.appendChild(h)}
+function btn(p,t,f,c){const b=document.createElement('button');b.className='btn '+(c||'');b.textContent=t;b.onclick=f;p.appendChild(b);return b}
+function buildPanes(){panes.innerHTML='';const P={};TABS.forEach(n=>{const d=document.createElement('div');d.className='pane'+(n===cur?' on':'');panes.appendChild(d);P[n]=d});tabs.innerHTML='';TABS.forEach(n=>{const b=document.createElement('button');b.textContent=n;b.className=n===cur?'on':'';b.onclick=()=>{cur=n;buildPanes()};tabs.appendChild(b)});
+let p=P.Model;head(p,'Model');if(!model){p.innerHTML+='<p class="mu">No model loaded. Upload a .glb or drop it on the viewport.</p>'}else{
+const t=document.createElement('div');t.className='mu';t.innerHTML=`${meshes.length} meshes · ${mats.length} materials<br>Size ${dim.x.toFixed(3)} × ${dim.y.toFixed(3)} × ${dim.z.toFixed(3)} (W×H×D, model units)`;p.appendChild(t);
+head(p,'Hierarchy (click a mesh to target it)');const pre=document.createElement('pre');let out='';(function w(o,d){const i=meshes.indexOf(o);out+=`<span data-i="${i}">${'  '.repeat(d)}${o.isMesh?'▣':'▸'} ${o.name||o.type}${o.isMesh&&i===S.mi?' ◀':''}</span>\n`;o.children.forEach(c=>w(c,d+1))})(model,0);pre.innerHTML=out;pre.onclick=e=>{const i=+e.target.dataset.i;if(i>=0){S.mi=i;S.si=0;fitH();applyLabel();buildPanes()}};p.appendChild(pre);
+btn(p,'Frame model',()=>view('3/4'),'w')}
+p=P.Label;head(p,'Product label');if(T.uv){const t=document.createElement('div');t.className='mu';t.textContent=`${T.name} · ${T.w}×${T.h}px`;p.appendChild(t)}
+const row=document.createElement('div');row.className='grid2';p.appendChild(row);btn(row,T.uv?'Replace':'Upload label',()=>$('fLabel').click());btn(row,'Remove',()=>{if(T.uv){T.uv.dispose();T.cyl.dispose();T.uv=T.cyl=null;CUR.label=null;applyLabel();buildPanes()}});
+if(model){head(p,'Target');sel(p,meshes.map((m,i)=>[i,m.name||('mesh '+i)]),()=>S.mi,v=>{S.mi=+v;S.si=0;fitH();applyLabel();buildPanes()});
+const ma=[].concat(meshes[S.mi].material);sel(p,ma.map((m,i)=>[i,'Material: '+(m.name||i)]),()=>S.si,v=>{S.si=+v;applyLabel()});
+head(p,'Mapping mode');sel(p,[['uv','A · Replace existing UV texture'],['cyl','B · Cylindrical wrap (overlay)']],()=>S.mode,v=>{S.mode=v;applyLabel();buildPanes()});
+const hint=document.createElement('p');hint.className='mu';hint.textContent=S.mode==='uv'?(meshes[S.mi].geometry.attributes.uv?'Replaces the color map of the chosen material only; lid, rim and other materials are untouched.':'This mesh has no UVs: use mode B, or unwrap the model in Blender.'):'Adds a thin curved surface just outside the body. Best for cans/bottles with a cylindrical body and no usable UV.';p.appendChild(hint);
+const u=()=>applyLabel();head(p,'Transform');const L=S.L;
+slider(p,'Offset X','-1','1','.005',()=>L.x,v=>{L.x=v;u()});slider(p,'Offset Y','-1','1','.005',()=>L.y,v=>{L.y=v;u()});slider(p,'Rotation °','-180','180','1',()=>L.rot,v=>{L.rot=v;u()});slider(p,'Scale X','.1','4','.01',()=>L.sx,v=>{L.sx=v;u()});slider(p,'Scale Y','.1','4','.01',()=>L.sy,v=>{L.sy=v;u()});slider(p,'Opacity','0','1','.01',()=>L.op,v=>{L.op=v;u()});
+check(p,'Flip horizontal',()=>L.fx,v=>{L.fx=v;u()});check(p,'Flip vertical',()=>L.fy,v=>{L.fy=v;u()});check(p,'Repeat / tile',()=>L.rep,v=>{L.rep=v;u()});
+if(S.mode==='cyl'){head(p,'Cylinder');slider(p,'Wrap coverage','.05','1','.01',()=>L.cov,v=>{L.cov=v;u()});slider(p,'Height','.05','1','.005',()=>L.h,v=>{L.h=v;u()});slider(p,'Vertical pos','0','1','.005',()=>L.yp,v=>{L.yp=v;u()});slider(p,'Seam angle °','0','360','1',()=>L.seam,v=>{L.seam=v;u()});btn(p,'Fit height to image ratio',()=>{fitH();applyLabel();buildPanes()},'w')}
+head(p,'Material');check(p,S.mode==='uv'?'Override metalness/roughness':'(cylinder always uses these)',()=>S.mode==='cyl'||S.ov,v=>{S.ov=v;u()});slider(p,'Metalness','0','1','.01',()=>S.metal,v=>{S.metal=v;u()});slider(p,'Roughness','0','1','.01',()=>S.rough,v=>{S.rough=v;u()});
+head(p,'Compare');check(p,'Show original (before)',()=>S.orig,v=>{S.orig=v;u()});btn(p,'Reset label settings',()=>{Object.assign(S.L,{x:0,y:0,rot:0,sx:1,sy:1,fx:false,fy:false,op:1,rep:false,cov:1,yp:.5,seam:0});fitH();applyLabel();buildPanes()},'w')}
+p=P.Scene;head(p,'Lighting');sel(p,[['studio','Studio Softbox'],['bright','Bright Product Photography'],['dark','Dark Premium Studio'],['neutral','Neutral Catalog']],()=>S.envName,v=>{S.envName=v;buildEnv()});check(p,'Environment lighting',()=>S.env,v=>{S.env=v;applyEnv()});slider(p,'Exposure','.2','2.5','.01',()=>S.exp,v=>{S.exp=v;applyEnv()});
+head(p,'Preview background');sel(p,[['solid','Solid color'],['gradient','Gradient'],['image','Custom image'],['transparent','Transparent (checker)']],()=>S.bg,v=>{S.bg=v;vis()});const cc=document.createElement('div');cc.className='grid2';p.appendChild(cc);[['c1'],['c2']].forEach(([k])=>{const i=document.createElement('input');i.type='color';i.value=S[k];i.oninput=()=>{S[k]=i.value;vis()};cc.appendChild(i)});
+btn(p,'Upload background image…',()=>$('fBg').click(),'w');check(p,'Ground plane',()=>S.ground,v=>{S.ground=v;vis()});check(p,'Soft shadow',()=>S.shadow,v=>{S.shadow=v;vis()});check(p,'Grid',()=>S.grid,v=>{S.grid=v;vis()});
+head(p,'Camera');const g=document.createElement('div');g.className='grid3';p.appendChild(g);Object.keys(VIEWS).forEach(n=>btn(g,n,()=>model&&view(n)));
+check(p,'Perspective (off = orthographic)',()=>S.persp,v=>setProj(v));slider(p,'Field of view','15','70','1',()=>S.fov,v=>{S.fov=v;persp.fov=v;persp.updateProjectionMatrix()});
+p=P.Export;head(p,'Export PNG');const X=S.X=S.X||{edge:2048,ar:'1',bg:'transparent',col:'#ffffff',shadow:true};
+sel(p,[[1024,'1024 px'],[2048,'2048 px'],[4096,'4096 px']],()=>X.edge,v=>X.edge=+v);sel(p,[['1','1:1'],['0.8','4:5'],['0.75','3:4'],['1.7778','16:9'],['view','Current viewport']],()=>X.ar,v=>X.ar=v);
+sel(p,[['transparent','Transparent'],['solid','Solid color'],['preview','Same as preview']],()=>X.bg,v=>X.bg=v);const ci=document.createElement('input');ci.type='color';ci.value=X.col;ci.oninput=()=>X.col=ci.value;p.appendChild(ci);check(p,'Include shadow',()=>X.shadow,v=>X.shadow=v);
+const st=document.createElement('div');st.className='mu';st.id='expst';p.appendChild(st);btn(p,'Render & download',()=>doExport(X),'p w');p.insertAdjacentHTML('beforeend','<p class="mu">Rendered offscreen at the chosen size (not a screenshot). Largest size is limited by your GPU.</p>');buildProject(P.Project)}
+function doExport(X){if(!model)return toast('Load a model first.');const st=$('expst');st.textContent='Rendering…';
+setTimeout(()=>{const ow=vp.clientWidth,oh=vp.clientHeight,opr=R.getPixelRatio(),hv=[gridH.visible,gnd.visible,shd.visible,sun.castShadow];
+try{const a=X.ar==='view'?ow/oh:parseFloat(X.ar);let w=a>=1?X.edge:Math.round(X.edge*a),h=a>=1?Math.round(X.edge/a):X.edge;const gl=R.getContext(),mx=Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),gl.getParameter(gl.MAX_TEXTURE_SIZE));
+if(Math.max(w,h)>mx){const k=mx/Math.max(w,h);w=Math.floor(w*k);h=Math.floor(h*k);toast('Size reduced to '+w+'×'+h+' (GPU limit).')}
+gridH.visible=false;if(X.bg==='transparent'||!S.ground)gnd.visible=false;if(!X.shadow){shd.visible=false;sun.castShadow=false}
+R.setPixelRatio(1);R.setSize(w,h,false);aspect(w/h);R.render(scene,cam);
+const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
+if(X.bg==='solid'||(X.bg==='preview'&&S.bg==='solid')){x.fillStyle=X.bg==='solid'?X.col:S.c1;x.fillRect(0,0,w,h)}else if(X.bg==='preview'&&S.bg==='gradient'){const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,S.c1);g.addColorStop(1,S.c2);x.fillStyle=g;x.fillRect(0,0,w,h)}
+if(X.bg==='preview'&&S.bg==='image'&&BG.img){const k=Math.max(w/BG.img.width,h/BG.img.height);x.drawImage(BG.img,(w-BG.img.width*k)/2,(h-BG.img.height*k)/2,BG.img.width*k,BG.img.height*k)}
+x.drawImage(R.domElement,0,0,w,h);c.toBlob(b=>{if(!b){st.textContent='';return toast('Export failed (out of memory?). Try a smaller size.')}const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`mockup-${w}x${h}.png`;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),4000);st.textContent=`Done · ${w}×${h}`;},'image/png')}
+catch(e){st.textContent='';toast('Export failed: '+e.message+'. Try a smaller size.')}
+finally{[gridH.visible,gnd.visible,shd.visible,sun.castShadow]=hv;R.setPixelRatio(opr);resize()}},30)}
+/* ---------- toolbar & wiring ---------- */
+const tl=$('tools');[['＋','Zoom in',()=>zoom(.8)],['－','Zoom out',()=>zoom(1.25)],['⟲','Reset camera',()=>model&&view('3/4')],['▦','Grid',()=>{S.grid=!S.grid;vis()}],['▭','Ground',()=>{S.ground=!S.ground;vis()}],['☀','Environment',()=>{S.env=!S.env;applyEnv()}],['◫','Projection',()=>{setProj(!S.persp);buildPanes()}]].forEach(([t,ti,f])=>{const b=document.createElement('button');b.textContent=t;b.title=ti;b.setAttribute('aria-label',ti);b.onclick=f;tl.appendChild(b)});
+$('bModel').onclick=()=>$('fModel').click();$('bLabel').onclick=()=>$('fLabel').click();$('bExp').onclick=()=>{cur='Export';buildPanes()};
+$('fModel').onchange=e=>{const f=e.target.files[0];if(f)loadModel(f);e.target.value=''};$('fLabel').onchange=e=>{const f=e.target.files[0];if(f)loadLabel(f);e.target.value=''};
+vp.ondragover=e=>e.preventDefault();vp.ondrop=e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(!f)return;/\.(glb|gltf)$/i.test(f.name)?loadModel(f):/^image\//.test(f.type)?loadLabel(f):toast('Unsupported file type.')};
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.ctrlKey||e.metaKey)&&(k==='z'||k==='y')&&e.target.type!=='number'){e.preventDefault();(k==='y'||e.shiftKey)?redo():undo();return}if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='r')model&&view('3/4');if(e.key==='g'){S.grid=!S.grid;vis()}});
+const TABS=['Model','Label','Scene','Export','Project'],KEYS=['mode','mi','si','ov','metal','rough','L','grid','ground','shadow','env','envName','bg','c1','c2','exp'],BG={img:null,url:null},H={u:[],r:[]},uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let CUR={id:uid(),name:'Untitled',model:null,label:null},tm,last;
+const snap=()=>JSON.stringify(Object.fromEntries(KEYS.map(k=>[k,S[k]])));last=snap();const DEF=last;
+function hist(){clearTimeout(tm);tm=setTimeout(()=>{const s=snap();if(s!==last){H.u.push(last);if(H.u.length>80)H.u.shift();H.r=[];last=s}},400)}
+function flush(){clearTimeout(tm);const s=snap();if(s!==last){H.u.push(last);H.r=[];last=s}}
+function setS(j){const o=JSON.parse(j),pe=S.envName;KEYS.forEach(k=>{if(k!=='L'&&k in o)S[k]=o[k]});S.L=Object.assign({},JSON.parse(DEF).L,o.L);S.mi=Math.min(S.mi,Math.max(0,meshes.length-1));if(S.envName!==pe)buildEnv();else applyEnv();vis();applyLabel();buildPanes();clearTimeout(tm);last=snap()}
+function undo(){flush();if(!H.u.length)return;H.r.push(last);setS(H.u.pop())}
+function redo(){flush();if(!H.r.length)return;H.u.push(last);setS(H.r.pop())}
+function loadBg(f){const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{if(BG.url)URL.revokeObjectURL(BG.url);BG.url=u;BG.img=im;S.bg='image';vis();buildPanes()};im.onerror=()=>{URL.revokeObjectURL(u);toast('Could not read that image.')};im.src=u}
+/* ---------- projects (IndexedDB) ---------- */
+const DB=()=>new Promise((ok,no)=>{const r=indexedDB.open('mockup-studio',1);r.onupgradeneeded=()=>r.result.createObjectStore('p',{keyPath:'id'});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+const dbq=async(m,fn)=>{const d=await DB();return new Promise((ok,no)=>{const t=d.transaction('p',m),q=fn(t.objectStore('p'));t.oncomplete=()=>{d.close();ok(q&&q.result)};t.onerror=t.onabort=()=>{d.close();no(t.error)}})};
+async function saveProject(){flush();const rec={id:CUR.id,name:CUR.name,updated:Date.now(),settings:snap(),model:CUR.model,label:CUR.label};
+try{await dbq('readwrite',s=>s.put(rec));toast('Project saved in this browser',1)}catch(e){try{rec.model=rec.label=null;await dbq('readwrite',s=>s.put(rec));toast('Saved settings only (files too large for browser storage). Re-upload the model and label when reopening.')}catch(e2){toast('Browser storage is unavailable, so the project was not saved. Use Export settings instead.')}}if(cur==='Project')buildPanes()}
+function openProject(r){CUR={id:r.id,name:r.name,model:r.model||null,label:r.label||null};H.u=[];H.r=[];const fin=()=>{setS(r.settings);toast('Project opened',1)};
+if(r.model)loadModel(r.model,()=>r.label?loadLabel(r.label,fin):fin());else{r.label?loadLabel(r.label,fin):fin();toast('No files were stored with this project: upload the model and label again.')}}
+function newProject(){clearCyl();if(model){root.remove(model);disposeObj(model);model=null}meshes=[];mats=[];[T.uv,T.cyl].forEach(t=>t&&t.dispose());T.uv=T.cyl=null;CUR={id:uid(),name:'Untitled',model:null,label:null};H.u=[];H.r=[];dim.set(1,1,1);sizeScene();$('empty').style.display='flex';$('info').textContent='';setS(DEF)}
+function exportJSON(){const b=new Blob([JSON.stringify({app:'mockup-studio',name:CUR.name,settings:JSON.parse(snap())},null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(CUR.name||'project')+'.mockup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+function listProjects(l){l.innerHTML='<p class="mu">Loading…</p>';if(!window.indexedDB){l.innerHTML='<p class="mu">Browser storage unavailable.</p>';return}
+dbq('readonly',s=>s.getAll()).then(a=>{l.innerHTML=a.length?'':'<p class="mu">Nothing saved yet.</p>';a.sort((x,y)=>y.updated-x.updated).forEach(r=>{const d=document.createElement('div');d.style.cssText='border:1px solid var(--bd);border-radius:8px;padding:8px;margin:6px 0';d.innerHTML=`<b></b><div class="mu">${new Date(r.updated).toLocaleString()} · ${r.model?'with files':'settings only'}</div>`;d.firstChild.textContent=r.name;const g=document.createElement('div');g.className='grid2';g.style.marginTop='6px';d.appendChild(g);btn(g,'Open',()=>openProject(r));btn(g,'Delete',()=>dbq('readwrite',s=>s.delete(r.id)).then(()=>listProjects(l)));l.appendChild(d)})}).catch(()=>{l.innerHTML='<p class="mu">Could not read saved projects.</p>'})}
+function buildProject(p){head(p,'Current project');const n=document.createElement('input');n.value=CUR.name;n.setAttribute('aria-label','Project name');n.style.cssText='width:100%;padding:6px;border:1px solid var(--bd);border-radius:6px;background:var(--pn);color:var(--tx)';n.onchange=()=>CUR.name=n.value||'Untitled';p.appendChild(n);
+const g=document.createElement('div');g.className='grid2';g.style.marginTop='6px';p.appendChild(g);btn(g,'Save',saveProject,'p');btn(g,'Duplicate',async()=>{CUR.id=uid();CUR.name+=' copy';await saveProject()});btn(g,'New project',newProject);btn(g,'Reset settings',()=>setS(DEF));btn(g,'Export settings',exportJSON);btn(g,'Import settings',()=>$('fProj').click());
+p.insertAdjacentHTML('beforeend','<p class="mu">Save keeps the model, label and settings in this browser (IndexedDB). If the files are too large, only settings are kept and you re-upload them. Settings files (.json) never include the model or label.</p>');head(p,'Saved projects');const l=document.createElement('div');p.appendChild(l);listProjects(l)}
+$('bUndo').onclick=undo;$('bRedo').onclick=redo;$('fBg').onchange=e=>{const f=e.target.files[0];e.target.value='';f&&loadBg(f)};
+$('fProj').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const o=JSON.parse(await f.text());if(o.app!=='mockup-studio'||!o.settings)throw 0;CUR.name=o.name||CUR.name;setS(JSON.stringify(o.settings));toast('Settings imported. The model and label files are not in this file.',1)}catch(_){toast('That is not a valid Mockup Studio project file.')}};
+mkCtl();resize();buildEnv();vis();buildPanes();view('3/4');
+(function loop(){requestAnimationFrame(loop);ctl.update();R.render(scene,cam)})();
+</script></body></html>
